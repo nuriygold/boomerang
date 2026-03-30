@@ -1,0 +1,38 @@
+{
+  "name": "data-boomerang",
+  "version": "1.0.0",
+  "description": "Secure multi-source data collection with Auth0 Token Vault",
+  "main": "backend/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "NODE_ENV=development node backend/server.js",
+    "test": "node --test tests/**/*.test.js",
+    "client": "cd frontend && npm start",
+    "seed": "node backend/lib/seed-data.js"
+  },
+  "keywords": [
+    "auth0",
+    "token-vault",
+    "data-validation",
+    "multi-format",
+    "hackathon"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "auth0": "^4.0.1",
+    "axios": "^1.6.2",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5",
+    "multer": "^1.4.5-lts.1",
+    "papaparse": "^5.4.1",
+    "xlsx": "^0.18.5",
+    "uuid": "^9.0.1",
+    "joi": "^17.11.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
