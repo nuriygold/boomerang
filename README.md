@@ -421,8 +421,4 @@ curl -X POST http://localhost:3000/api/boomerangs \
 
 MIT
 
----
 
-**Built with ❤️ for the Auth0 "Authorized to Act" Hackathon 2026**
-
-Push the boundaries of what AI agents can do. Keep them secure. Keep users in control. 🚀
