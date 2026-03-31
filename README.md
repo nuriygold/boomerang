@@ -33,24 +33,13 @@ All formats → ✓ One beautiful dashboard
 data-boomerang-hackathon/
 ├── backend/
 │   ├── server.js                    # Express API server
+│   ├── public/
+│   │   └── index.html               # Minimal browser UI (served at /)
 │   ├── lib/
 │   │   ├── token-vault-client.js   # Auth0 Token Vault integration
 │   │   └── validator.js             # Core validation logic
 │   ├── models/
 │   │   └── boomerang-schema.js      # Boomerang data structure
-│   └── routes/
-│       └── boomerang.js             # API routes
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── CreateBoomerang.jsx
-│   │   │   ├── ShareableLink.jsx
-│   │   │   ├── UploadForm.jsx
-│   │   │   ├── ValidationFeedback.jsx
-│   │   │   └── Dashboard.jsx
-│   │   ├── pages/
-│   │   └── utils/
-│   └── public/
 ├── demo-data/
 │   └── q1-sample-responses.js       # Sample messy data for testing
 ├── tests/
@@ -94,6 +83,17 @@ npm run dev
 # Server will run on http://localhost:3000
 # Health check: curl http://localhost:3000/health
 ```
+
+### Open the Minimal UI
+
+The app now serves a built-in UI directly from the backend:
+
+1. Open [http://localhost:3000](http://localhost:3000)
+2. Keep `demo-q1-2026` as the default boomerang (or enter your own ID)
+3. Upload a `.csv`, `.xlsx`, or `.xls` file
+4. Review validation feedback (valid/invalid row counts + sample errors)
+
+This page is intentionally minimal and uses the existing backend APIs as the source of truth.
 
 ### Loading Demo Data
 
@@ -355,7 +355,7 @@ curl -X POST http://localhost:3000/api/boomerangs \
 
 - [ ] **Published Link / App**
   - Deploy backend to Heroku, Vercel, Railway, or AWS
-  - Deploy frontend to Vercel, Netlify, or same server
+  - UI is backend-served at `/` (single deploy target)
   - Share working URL
 
 - [ ] **Bonus: Blog Post** (250+ words)
@@ -420,5 +420,3 @@ curl -X POST http://localhost:3000/api/boomerangs \
 ## 📄 License
 
 MIT
-
-

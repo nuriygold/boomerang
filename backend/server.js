@@ -15,6 +15,8 @@ import { v4 as uuidv4 } from 'uuid';
 import multer from 'multer';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 import tokenVaultClient from './lib/token-vault-client.js';
 import validator from './lib/validator.js';
@@ -25,10 +27,14 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const publicDir = path.join(__dirname, 'public');
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.static(publicDir));
 const upload = multer({ storage: multer.memoryStorage() });
 
 // Store boomerangs in memory (use database in production)
@@ -45,6 +51,10 @@ boomerangs.set(demoBoom.id, demoBoom);
 // ============================================
 // HEALTH CHECK
 // ============================================
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(publicDir, 'index.html'));
+});
 
 app.get('/health', (req, res) => {
   res.json({
@@ -81,7 +91,7 @@ app.post('/api/boomerangs', async (req, res) => {
 
     res.json({
       boomerang,
-      shareUrl: `${process.env.FRONTEND_URL || 'http://localhost:3001'}/boomerang/${boomerang.id}`,
+      shareUrl: `${process.env.FRONTEND_URL || `http://localhost:${PORT}`}/?boomerang=${boomerang.id}`,
       message: `Boomerang created. Share the link with contributors.`,
     });
   } catch (error) {
