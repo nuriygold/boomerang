@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Data Boomerang UI</title>
+    <style>
+      :root {
+        --bg: #f4f6fb;
+        --card: #ffffff;
+        --ink: #14213d;
+        --muted: #5f6b7a;
+        --line: #d7deea;
+        --brand: #0f766e;
+        --brand-2: #1d4ed8;
+        --ok-bg: #e7f8ef;
+        --ok-ink: #0f7a3f;
+        --warn-bg: #fff4e6;
+        --warn-ink: #9a5c00;
+        --err-bg: #fdecec;
+        --err-ink: #a72020;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 0% 0%, #d8f3ff 0, transparent 35%),
+          radial-gradient(circle at 100% 100%, #e7f6ef 0, transparent 35%),
+          var(--bg);
+      }
+
+      .wrap {
+        max-width: 920px;
+        margin: 40px auto;
+        padding: 0 18px 24px;
+      }
+
+      .hero {
+        background: linear-gradient(120deg, var(--brand), var(--brand-2));
+        color: #fff;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 8px 28px rgba(20, 33, 61, 0.18);
+      }
+
+      .hero h1 {
+        margin: 0 0 8px;
+        font-size: 1.55rem;
+      }
+
+      .hero p {
+        margin: 0;
+        opacity: 0.95;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        margin-top: 16px;
+        padding: 18px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+      }
+
+      label {
+        display: block;
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: var(--muted);
+        margin-bottom: 7px;
+      }
+
+      input[type="text"],
+      input[type="file"] {
+        width: 100%;
+        padding: 10px 11px;
+        border: 1px solid #bcc7da;
+        border-radius: 9px;
+        font-size: 0.95rem;
+        background: #fff;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      button {
+        border: 0;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      button.primary {
+        color: #fff;
+        background: linear-gradient(120deg, var(--brand), var(--brand-2));
+      }
+
+      button.secondary {
+        color: var(--ink);
+        background: #e9eef8;
+      }
+
+      button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+
+      .pill {
+        border-radius: 9px;
+        padding: 10px 12px;
+        font-weight: 600;
+        margin-top: 12px;
+      }
+
+      .pill.info {
+        background: #e7eefc;
+        color: #25408c;
+      }
+
+      .pill.success {
+        background: var(--ok-bg);
+        color: var(--ok-ink);
+      }
+
+      .pill.warning {
+        background: var(--warn-bg);
+        color: var(--warn-ink);
+      }
+
+      .pill.error {
+        background: var(--err-bg);
+        color: var(--err-ink);
+      }
+
+      .section-title {
+        margin: 0 0 10px;
+        font-size: 1.02rem;
+      }
+
+      .required-fields {
+        display: grid;
+        gap: 8px;
+      }
+
+      .required-fields li {
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        padding: 9px 10px;
+        list-style: none;
+      }
+
+      .required-fields small {
+        color: var(--muted);
+      }
+
+      .summary {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .summary .metric {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px 12px;
+        min-width: 140px;
+        background: #f8faff;
+      }
+
+      .summary strong {
+        display: block;
+        font-size: 1.25rem;
+      }
+
+      .errors li {
+        margin-bottom: 7px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="hero">
+        <h1>Data Boomerang: Upload + Validate</h1>
+        <p>Load a boomerang, upload CSV/XLSX, and view validation feedback instantly.</p>
+      </section>
+
+      <section class="card">
+        <div class="grid">
+          <div>
+            <label for="boomerangId">Boomerang ID</label>
+            <input id="boomerangId" type="text" value="demo-q1-2026" />
+          </div>
+          <div>
+            <label for="userId">User ID Header (`x-user-id`)</label>
+            <input id="userId" type="text" value="demo-user" />
+          </div>
+        </div>
+        <div class="actions">
+          <button id="loadBoomerangBtn" class="secondary" type="button">Load Boomerang</button>
+        </div>
+        <div id="boomerangStatus" class="pill info">Ready to load boomerang context.</div>
+      </section>
+
+      <section class="card">
+        <h2 class="section-title">Upload Data</h2>
+        <form id="uploadForm">
+          <label for="fileInput">File (.csv, .xlsx, .xls)</label>
+          <input id="fileInput" type="file" accept=".csv,.xlsx,.xls" required />
+          <div class="actions">
+            <button id="uploadBtn" class="primary" type="submit" disabled>Submit & Validate</button>
+          </div>
+        </form>
+        <div id="uploadStatus" class="pill info">Load a boomerang first to enable upload.</div>
+      </section>
+
+      <section class="card">
+        <h2 class="section-title">Boomerang Context</h2>
+        <div id="boomerangContext">
+          <p>No boomerang loaded yet.</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 class="section-title">Validation Result</h2>
+        <div id="validationResult">
+          <p>No upload yet.</p>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const boomerangIdInput = document.getElementById('boomerangId');
+      const userIdInput = document.getElementById('userId');
+      const fileInput = document.getElementById('fileInput');
+      const loadBoomerangBtn = document.getElementById('loadBoomerangBtn');
+      const uploadBtn = document.getElementById('uploadBtn');
+      const uploadForm = document.getElementById('uploadForm');
+      const boomerangStatus = document.getElementById('boomerangStatus');
+      const uploadStatus = document.getElementById('uploadStatus');
+      const boomerangContext = document.getElementById('boomerangContext');
+      const validationResult = document.getElementById('validationResult');
+
+      let boomerangLoaded = false;
+
+      function setPill(el, type, text) {
+        el.className = `pill ${type}`;
+        el.textContent = text;
+      }
+
+      function renderBoomerang(boom) {
+        const fields = (boom.requiredFields || [])
+          .map((field) => {
+            const description = field.description || 'No description';
+            return `
+              <li>
+                <strong>${field.name}</strong> <small>(${field.type})</small><br />
+                <small>${description}</small>
+              </li>`;
+          })
+          .join('');
+
+        boomerangContext.innerHTML = `
+          <p><strong>${boom.name}</strong></p>
+          <p>${boom.description || ''}</p>
+          <p><small>Status: ${boom.status} | Created: ${new Date(boom.createdAt).toLocaleString()}</small></p>
+          <h3 class="section-title">Required Fields</h3>
+          <ul class="required-fields">${fields || '<li>No required fields.</li>'}</ul>
+        `;
+      }
+
+      function renderValidation(data) {
+        const errors = (data.feedback?.sampleErrors || [])
+          .map((err) => `<li>Row ${err.rowIndex} - ${err.field}: ${err.message}</li>`)
+          .join('');
+
+        validationResult.innerHTML = `
+          <p><strong>${data.message}</strong></p>
+          <div class="summary">
+            <div class="metric"><span>Total Rows</span><strong>${data.summary.totalRows}</strong></div>
+            <div class="metric"><span>Valid Rows</span><strong>${data.summary.validRows}</strong></div>
+            <div class="metric"><span>Invalid Rows</span><strong>${data.summary.invalidRows}</strong></div>
+          </div>
+          <p>${data.nextStep || ''}</p>
+          <h3 class="section-title">Sample Errors</h3>
+          <ul class="errors">${errors || '<li>No sample errors.</li>'}</ul>
+        `;
+      }
+
+      function updateUploadState() {
+        uploadBtn.disabled = !boomerangLoaded || !fileInput.files[0];
+      }
+
+      async function loadBoomerang() {
+        const boomerangId = boomerangIdInput.value.trim();
+        if (!boomerangId) {
+          boomerangLoaded = false;
+          updateUploadState();
+          setPill(boomerangStatus, 'error', 'Please enter a boomerang ID.');
+          boomerangContext.innerHTML = '<p>No boomerang loaded yet.</p>';
+          return;
+        }
+
+        setPill(boomerangStatus, 'info', 'Loading boomerang context...');
+        try {
+          const response = await fetch(`/api/boomerangs/${encodeURIComponent(boomerangId)}`);
+          const data = await response.json();
+
+          if (!response.ok) {
+            boomerangLoaded = false;
+            updateUploadState();
+            setPill(boomerangStatus, 'error', data.error || 'Unable to load boomerang.');
+            setPill(uploadStatus, 'warning', 'Upload disabled until boomerang is found.');
+            boomerangContext.innerHTML = '<p>No boomerang found for this ID.</p>';
+            return;
+          }
+
+          boomerangLoaded = true;
+          updateUploadState();
+          renderBoomerang(data);
+          setPill(boomerangStatus, 'success', `Loaded boomerang: ${data.name}`);
+          setPill(uploadStatus, 'info', 'Choose a file and submit for validation.');
+        } catch (error) {
+          boomerangLoaded = false;
+          updateUploadState();
+          setPill(boomerangStatus, 'error', `Network error: ${error.message}`);
+          setPill(uploadStatus, 'warning', 'Upload disabled until boomerang is found.');
+        }
+      }
+
+      loadBoomerangBtn.addEventListener('click', loadBoomerang);
+      boomerangIdInput.addEventListener('change', loadBoomerang);
+      fileInput.addEventListener('change', updateUploadState);
+
+      uploadForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const boomerangId = boomerangIdInput.value.trim();
+        const userId = userIdInput.value.trim() || 'demo-user';
+        const file = fileInput.files[0];
+
+        if (!boomerangLoaded) {
+          setPill(uploadStatus, 'error', 'Load a valid boomerang ID first.');
+          return;
+        }
+
+        if (!file) {
+          setPill(uploadStatus, 'error', 'Please choose a file before upload.');
+          return;
+        }
+
+        uploadBtn.disabled = true;
+        setPill(uploadStatus, 'info', 'Uploading and validating...');
+
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+
+          const response = await fetch(`/api/boomerangs/${encodeURIComponent(boomerangId)}/upload`, {
+            method: 'POST',
+            headers: { 'x-user-id': userId },
+            body: formData,
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            setPill(uploadStatus, 'error', data.error || 'Upload failed.');
+            return;
+          }
+
+          renderValidation(data);
+          const tone = data.summary.invalidRows === 0 ? 'success' : 'warning';
+          setPill(uploadStatus, tone, data.message);
+        } catch (error) {
+          setPill(uploadStatus, 'error', `Network error: ${error.message}`);
+        } finally {
+          updateUploadState();
+        }
+      });
+
+      const params = new URLSearchParams(window.location.search);
+      const paramBoomerang = params.get('boomerang');
+      if (paramBoomerang) {
+        boomerangIdInput.value = paramBoomerang;
+      }
+
+      loadBoomerang();
+    </script>
+  </body>
+</html>
