@@ -30,9 +30,28 @@ const PORT = process.env.PORT || 3000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const publicDir = path.join(__dirname, 'public');
+const publicBaseUrl = (process.env.PUBLIC_BASE_URL || process.env.FRONTEND_URL || `http://localhost:${PORT}`)
+  .replace(/\/+$/, '');
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin(origin, callback) {
+    // Server-to-server and same-origin requests may not include Origin.
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS_BLOCKED: Origin ${origin} is not allowed`));
+  },
+}));
 app.use(express.json());
 app.use(express.static(publicDir));
 const upload = multer({ storage: multer.memoryStorage() });
@@ -61,6 +80,7 @@ app.get('/health', (req, res) => {
     status: 'ok',
     service: 'data-boomerang',
     tokenVaultConnected: !process.env.TOKEN_VAULT_URL?.includes('YOUR'),
+    publicBaseUrl,
     timestamp: new Date().toISOString(),
   });
 });
@@ -91,7 +111,7 @@ app.post('/api/boomerangs', async (req, res) => {
 
     res.json({
       boomerang,
-      shareUrl: `${process.env.FRONTEND_URL || `http://localhost:${PORT}`}/?boomerang=${boomerang.id}`,
+      shareUrl: `${publicBaseUrl}/?boomerang=${boomerang.id}`,
       message: `Boomerang created. Share the link with contributors.`,
     });
   } catch (error) {
