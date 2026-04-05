@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Data Boomerang — App</title>
+    <style>
+      :root {
+        --bg: #f4f6fb;
+        --card: #ffffff;
+        --ink: #14213d;
+        --muted: #5f6b7a;
+        --line: #d7deea;
+        --brand: #0f766e;
+        --brand-2: #1d4ed8;
+        --ok-bg: #e7f8ef;
+        --ok-ink: #0f7a3f;
+        --warn-bg: #fff4e6;
+        --warn-ink: #9a5c00;
+        --err-bg: #fdecec;
+        --err-ink: #a72020;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 0% 0%, #d8f3ff 0, transparent 35%),
+          radial-gradient(circle at 100% 100%, #e7f6ef 0, transparent 35%),
+          var(--bg);
+      }
+      .wrap { max-width: 920px; margin: 0 auto; padding: 28px 18px 48px; }
+      .nav {
+        display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+        font-size: 0.85rem;
+      }
+      .nav a { color: var(--brand-2); text-decoration: none; font-weight: 600; }
+      .nav-sep { color: var(--line); }
+
+      .hero {
+        background: linear-gradient(120deg, var(--brand-2), #7c3aed);
+        color: #fff;
+        border-radius: 18px;
+        padding: 22px 20px;
+        box-shadow: 0 8px 28px rgba(20,33,61,0.18);
+        margin-bottom: 18px;
+      }
+      .hero h1 { margin: 0 0 6px; font-size: 1.45rem; }
+      .hero p  { margin: 0; opacity: 0.93; font-size: 0.93rem; }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        margin-top: 14px;
+        padding: 18px;
+      }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+      .section-title { margin: 0 0 10px; font-size: 1rem; font-weight: 700; }
+
+      label {
+        display: block; font-size: 0.85rem; font-weight: 600;
+        color: var(--muted); margin-bottom: 6px;
+      }
+      input[type="text"], input[type="file"] {
+        width: 100%; padding: 10px 11px;
+        border: 1px solid #bcc7da; border-radius: 9px;
+        font-size: 0.95rem; background: #fff;
+      }
+      .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+      button {
+        border: 0; border-radius: 10px; padding: 10px 16px;
+        font-weight: 700; cursor: pointer; font-size: 0.9rem;
+      }
+      button.primary   { color: #fff; background: linear-gradient(120deg, var(--brand-2), #7c3aed); }
+      button.secondary { color: var(--ink); background: #e9eef8; }
+      button:disabled  { opacity: 0.5; cursor: not-allowed; }
+
+      .pill {
+        border-radius: 9px; padding: 10px 13px;
+        font-weight: 600; font-size: 0.88rem; margin-top: 12px;
+      }
+      .pill.info    { background: #e7eefc; color: #25408c; }
+      .pill.success { background: var(--ok-bg); color: var(--ok-ink); }
+      .pill.warning { background: var(--warn-bg); color: var(--warn-ink); }
+      .pill.error   { background: var(--err-bg); color: var(--err-ink); }
+
+      .required-fields { display: grid; gap: 8px; padding: 0; }
+      .required-fields li {
+        border: 1px solid var(--line); border-radius: 9px;
+        padding: 9px 11px; list-style: none;
+      }
+      .required-fields small { color: var(--muted); }
+
+      .summary { display: flex; gap: 10px; flex-wrap: wrap; }
+      .metric {
+        border: 1px solid var(--line); border-radius: 10px;
+        padding: 10px 12px; min-width: 130px; background: #f8faff;
+      }
+      .metric strong { display: block; font-size: 1.25rem; }
+      .errors li { margin-bottom: 7px; font-size: 0.85rem; }
+
+      .hint-row {
+        font-size: 0.8rem; color: var(--muted);
+        margin-top: 10px; display: flex; align-items: center; gap: 6px;
+      }
+      .hint-row a { color: var(--brand-2); text-decoration: none; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="nav">
+        <a href="/">⟳ Data Boomerang</a>
+        <span class="nav-sep">/</span>
+        <span>App</span>
+        <span style="margin-left:auto"><a href="/demo">View Demo →</a></span>
+      </div>
+
+      <div class="hero">
+        <h1>Upload &amp; Validate</h1>
+        <p>Load a boomerang ID, upload your CSV or XLSX, and get instant validation feedback.</p>
+      </div>
+
+      <!-- Boomerang loader -->
+      <section class="card">
+        <div class="grid">
+          <div>
+            <label for="boomerangId">Boomerang ID</label>
+            <input id="boomerangId" type="text" placeholder="e.g. demo-q1-2026" />
+          </div>
+          <div>
+            <label for="userId">Your User ID</label>
+            <input id="userId" type="text" placeholder="your-name" value="user" />
+          </div>
+        </div>
+        <div class="actions">
+          <button id="loadBoomerangBtn" class="primary" type="button">Load Boomerang</button>
+        </div>
+        <div id="boomerangStatus" class="pill info">Enter a boomerang ID and click Load.</div>
+        <div class="hint-row">
+          ↑ Don't have one? Try <a href="#" id="useDemo">demo-q1-2026</a> or
+          <a href="/demo">see the guided demo</a>
+        </div>
+      </section>
+
+      <!-- Upload -->
+      <section class="card">
+        <h2 class="section-title">Upload Data</h2>
+        <form id="uploadForm">
+          <label for="fileInput">File (.csv, .xlsx, .xls)</label>
+          <input id="fileInput" type="file" accept=".csv,.xlsx,.xls" required />
+          <div class="actions">
+            <button id="uploadBtn" class="primary" type="submit" disabled>Submit &amp; Validate</button>
+          </div>
+        </form>
+        <div id="uploadStatus" class="pill info">Load a boomerang first.</div>
+      </section>
+
+      <!-- Schema context -->
+      <section class="card">
+        <h2 class="section-title">Boomerang Schema</h2>
+        <div id="boomerangContext"><p style="color:var(--muted);font-size:0.9rem">No boomerang loaded.</p></div>
+      </section>
+
+      <!-- Validation result -->
+      <section class="card">
+        <h2 class="section-title">Validation Result</h2>
+        <div id="validationResult"><p style="color:var(--muted);font-size:0.9rem">No upload yet.</p></div>
+      </section>
+    </div>
+
+    <script>
+      const elBoomerangId  = document.getElementById('boomerangId');
+      const elUserId       = document.getElementById('userId');
+      const elFileInput    = document.getElementById('fileInput');
+      const elLoadBtn      = document.getElementById('loadBoomerangBtn');
+      const elUploadBtn    = document.getElementById('uploadBtn');
+      const elForm         = document.getElementById('uploadForm');
+      const elBoomStatus   = document.getElementById('boomerangStatus');
+      const elUploadStatus = document.getElementById('uploadStatus');
+      const elBoomContext  = document.getElementById('boomerangContext');
+      const elValResult    = document.getElementById('validationResult');
+
+      let boomerangLoaded = false;
+
+      document.getElementById('useDemo').addEventListener('click', e => {
+        e.preventDefault();
+        elBoomerangId.value = 'demo-q1-2026';
+        loadBoomerang();
+      });
+
+      function setPill(el, type, text) { el.className = 'pill ' + type; el.textContent = text; }
+
+      function renderBoomerang(boom) {
+        const fields = (boom.requiredFields || []).map(f => `
+          <li>
+            <strong>${f.name}</strong>
+            <code style="background:#f0f4ff;padding:2px 6px;border-radius:4px;font-size:0.75em;margin:0 4px">${f.type}</code>
+            <br><small>${f.description || ''}</small>
+          </li>`).join('');
+        elBoomContext.innerHTML = `
+          <p style="margin:0 0 6px"><strong>${boom.name}</strong></p>
+          <p style="font-size:0.85rem;color:var(--muted);margin:0 0 12px">${boom.description || ''}</p>
+          <ul class="required-fields">${fields || '<li>No required fields.</li>'}</ul>`;
+      }
+
+      function renderValidation(data) {
+        const errors = (data.feedback?.sampleErrors || [])
+          .map(e => `<li>Row ${e.rowIndex} — <strong>${e.field}</strong>: ${e.message}</li>`).join('');
+        elValResult.innerHTML = `
+          <p style="margin:0 0 10px"><strong>${data.message}</strong></p>
+          <div class="summary">
+            <div class="metric"><strong>${data.summary.totalRows}</strong><span>Total rows</span></div>
+            <div class="metric" style="border-color:#bde8cb"><strong style="color:var(--ok-ink)">${data.summary.validRows}</strong><span>Valid</span></div>
+            <div class="metric" style="border-color:#f5b8b8"><strong style="color:#a72020">${data.summary.invalidRows}</strong><span>Invalid</span></div>
+          </div>
+          <p style="margin:10px 0 6px;font-size:0.85rem">${data.nextStep || ''}</p>
+          ${errors ? `<h3 style="font-size:0.88rem;margin:10px 0 6px">Sample errors:</h3><ul class="errors">${errors}</ul>` : ''}`;
+      }
+
+      function updateUploadState() {
+        elUploadBtn.disabled = !boomerangLoaded || !elFileInput.files[0];
+      }
+
+      async function loadBoomerang() {
+        const id = elBoomerangId.value.trim();
+        if (!id) {
+          setPill(elBoomStatus, 'error', 'Enter a boomerang ID.');
+          boomerangLoaded = false; updateUploadState(); return;
+        }
+        setPill(elBoomStatus, 'info', 'Loading...');
+        try {
+          const res  = await fetch(`/api/boomerangs/${encodeURIComponent(id)}`);
+          const data = await res.json();
+          if (!res.ok) {
+            setPill(elBoomStatus, 'error', data.error || 'Not found.');
+            setPill(elUploadStatus, 'warning', 'Fix boomerang ID first.');
+            boomerangLoaded = false; updateUploadState();
+            elBoomContext.innerHTML = '<p style="color:var(--muted);font-size:0.9rem">No boomerang found.</p>';
+            return;
+          }
+          boomerangLoaded = true; updateUploadState();
+          renderBoomerang(data);
+          setPill(elBoomStatus, 'success', `✓ Loaded: ${data.name}`);
+          setPill(elUploadStatus, 'info', 'Choose a file and submit.');
+        } catch (err) {
+          setPill(elBoomStatus, 'error', `Network error: ${err.message}`);
+          boomerangLoaded = false; updateUploadState();
+        }
+      }
+
+      elLoadBtn.addEventListener('click', loadBoomerang);
+      elBoomerangId.addEventListener('keydown', e => { if (e.key === 'Enter') loadBoomerang(); });
+      elFileInput.addEventListener('change', updateUploadState);
+
+      elForm.addEventListener('submit', async e => {
+        e.preventDefault();
+        const id   = elBoomerangId.value.trim();
+        const uid  = elUserId.value.trim() || 'user';
+        const file = elFileInput.files[0];
+        if (!boomerangLoaded || !file) return;
+
+        elUploadBtn.disabled = true;
+        setPill(elUploadStatus, 'info', 'Uploading and validating...');
+        try {
+          const body = new FormData();
+          body.append('file', file);
+          const res  = await fetch(`/api/boomerangs/${encodeURIComponent(id)}/upload`, {
+            method: 'POST', headers: { 'x-user-id': uid }, body,
+          });
+          const data = await res.json();
+          if (!res.ok) { setPill(elUploadStatus, 'error', data.error || 'Upload failed.'); return; }
+          renderValidation(data);
+          setPill(elUploadStatus, data.summary.invalidRows === 0 ? 'success' : 'warning', data.message);
+        } catch (err) {
+          setPill(elUploadStatus, 'error', `Network error: ${err.message}`);
+        } finally {
+          updateUploadState();
+        }
+      });
+
+      // Auto-load from query param
+      const params = new URLSearchParams(window.location.search);
+      const qid = params.get('boomerang');
+      if (qid) { elBoomerangId.value = qid; loadBoomerang(); }
+    </script>
+  </body>
+</html>

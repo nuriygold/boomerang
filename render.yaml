@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: data-boomerang
+    env: node
+    buildCommand: npm install
+    startCommand: node backend/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        generateValue: false

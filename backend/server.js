@@ -52,8 +52,22 @@ boomerangs.set(demoBoom.id, demoBoom);
 // HEALTH CHECK
 // ============================================
 
+// ============================================
+// UI ROUTES
+// ============================================
+
 app.get('/', (req, res) => {
   res.sendFile(path.join(publicDir, 'index.html'));
+});
+
+// /demo — pre-loaded guided demo experience
+app.get('/demo', (req, res) => {
+  res.sendFile(path.join(publicDir, 'demo.html'));
+});
+
+// /app — production upload & validate tool
+app.get('/app', (req, res) => {
+  res.sendFile(path.join(publicDir, 'app.html'));
 });
 
 app.get('/health', (req, res) => {
