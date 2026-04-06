@@ -75,6 +75,7 @@
       }
       button.primary   { color: #fff; background: linear-gradient(120deg, var(--brand-2), #7c3aed); }
       button.secondary { color: var(--ink); background: #e9eef8; }
+      button.fix-btn   { color: #fff; background: linear-gradient(120deg, #0f766e, #059669); font-size: 0.95rem; padding: 12px 20px; }
       button:disabled  { opacity: 0.5; cursor: not-allowed; }
 
       .pill {
@@ -101,25 +102,54 @@
       .metric strong { display: block; font-size: 1.25rem; }
       .errors li { margin-bottom: 7px; font-size: 0.85rem; }
 
+      .fix-banner {
+        margin-top: 16px;
+        background: linear-gradient(120deg, #e7f8ef, #d1fae5);
+        border: 1.5px solid #6ee7b7;
+        border-radius: 12px;
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      .fix-banner-text { flex: 1; min-width: 200px; }
+      .fix-banner-text strong { display: block; color: #065f46; font-size: 1rem; margin-bottom: 3px; }
+      .fix-banner-text span { font-size: 0.85rem; color: #047857; }
+
       .hint-row {
         font-size: 0.8rem; color: var(--muted);
         margin-top: 10px; display: flex; align-items: center; gap: 6px;
       }
       .hint-row a { color: var(--brand-2); text-decoration: none; }
+
+      .corrections-list { margin-top: 12px; }
+      .corrections-list h3 { font-size: 0.88rem; margin: 0 0 6px; color: #065f46; }
+      .correction-item {
+        font-size: 0.82rem;
+        padding: 5px 8px;
+        background: #f0fdf4;
+        border-left: 3px solid #34d399;
+        margin-bottom: 4px;
+        border-radius: 4px;
+        color: #064e3b;
+      }
+      .correction-item .original { color: #9ca3af; text-decoration: line-through; margin-right: 6px; }
+      .correction-item .fixed { color: #065f46; font-weight: 600; }
     </style>
   </head>
   <body>
     <div class="wrap">
       <div class="nav">
-        <a href="/">⟳ Data Boomerang</a>
+        <a href="/">&#x27F3; Data Boomerang</a>
         <span class="nav-sep">/</span>
         <span>App</span>
-        <span style="margin-left:auto"><a href="/demo">View Demo →</a></span>
+        <span style="margin-left:auto"><a href="/demo">View Demo &rarr;</a></span>
       </div>
 
       <div class="hero">
         <h1>Upload &amp; Validate</h1>
-        <p>Load a boomerang ID, upload your CSV or XLSX, and get instant validation feedback.</p>
+        <p>Load a boomerang ID, upload your CSV or XLSX, and get instant validation + auto-correction.</p>
       </div>
 
       <!-- Boomerang loader -->
@@ -139,7 +169,7 @@
         </div>
         <div id="boomerangStatus" class="pill info">Enter a boomerang ID and click Load.</div>
         <div class="hint-row">
-          ↑ Don't have one? Try <a href="#" id="useDemo">demo-q1-2026</a> or
+          &uarr; Don't have one? Try <a href="#" id="useDemo">demo-q1-2026</a> or
           <a href="/demo">see the guided demo</a>
         </div>
       </section>
@@ -183,6 +213,7 @@
       const elValResult    = document.getElementById('validationResult');
 
       let boomerangLoaded = false;
+      let lastCleanedRows = null;
 
       document.getElementById('useDemo').addEventListener('click', e => {
         e.preventDefault();
@@ -205,18 +236,114 @@
           <ul class="required-fields">${fields || '<li>No required fields.</li>'}</ul>`;
       }
 
+      function buildCorrections(fullReport) {
+        const corrections = [];
+        (fullReport || []).forEach(r => {
+          if (!r.isValid && r.validatedRow) {
+            (r.errors || []).forEach(err => {
+              const fixedVal = r.validatedRow[err.field];
+              if (fixedVal !== undefined) {
+                corrections.push({
+                  row: r.rowIndex,
+                  field: err.field,
+                  issue: err.message,
+                  fixed: fixedVal
+                });
+              }
+            });
+          }
+        });
+        return corrections;
+      }
+
+      function toCSV(rows) {
+        if (!rows || rows.length === 0) return '';
+        const headers = Object.keys(rows[0]);
+        const lines = [headers.join(',')];
+        rows.forEach(row => {
+          const vals = headers.map(h => {
+            const v = row[h] === null || row[h] === undefined ? '' : String(row[h]);
+            return v.includes(',') || v.includes('"') || v.includes('\n')
+              ? '"' + v.replace(/"/g, '""') + '"'
+              : v;
+          });
+          lines.push(vals.join(','));
+        });
+        return lines.join('\n');
+      }
+
+      function downloadCSV(rows, filename) {
+        const csv = toCSV(rows);
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename || 'cleaned-data.csv';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+      }
+
       function renderValidation(data) {
+        lastCleanedRows = data.cleanedRows || null;
+
         const errors = (data.feedback?.sampleErrors || [])
-          .map(e => `<li>Row ${e.rowIndex} — <strong>${e.field}</strong>: ${e.message}</li>`).join('');
+          .map(e => `<li>Row ${e.rowIndex} &mdash; <strong>${e.field}</strong>: ${e.message}</li>`).join('');
+
+        const hasIssues = data.summary.invalidRows > 0;
+        const hasCleaned = lastCleanedRows && lastCleanedRows.length > 0;
+
+        const corrections = buildCorrections(data.feedback?.fullReport || []);
+        const corrPreview = corrections.slice(0, 4).map(c => `
+          <div class="correction-item">
+            Row ${c.row} &middot; <strong>${c.field}</strong>:
+            <span class="original">${c.issue.replace(/'/g, '')}</span>&rarr;
+            <span class="fixed">&check; ${c.fixed}</span>
+          </div>`).join('');
+
+        let fixBannerHtml = '';
+        if (hasCleaned && hasIssues) {
+          const corrCount = corrections.length;
+          fixBannerHtml = `
+            <div class="fix-banner" id="fixBanner">
+              <div class="fix-banner-text">
+                <strong>&check; ${corrCount} field${corrCount !== 1 ? 's' : ''} auto-corrected</strong>
+                <span>Dates normalized, numbers parsed, formatting cleaned. Download the fixed file below.</span>
+              </div>
+              <button class="fix-btn" id="downloadCleanBtn" type="button">&darr; Download Clean CSV</button>
+            </div>
+            ${corrPreview ? `<div class="corrections-list"><h3>Auto-corrections applied:</h3>${corrPreview}${corrections.length > 4 ? `<div class="correction-item" style="color:#6b7280">&hellip;and ${corrections.length - 4} more corrections</div>` : ''}</div>` : ''}`;
+        } else if (hasCleaned && !hasIssues) {
+          fixBannerHtml = `
+            <div class="fix-banner" id="fixBanner">
+              <div class="fix-banner-text">
+                <strong>&check; All rows valid</strong>
+                <span>Your data is clean and ready to sync.</span>
+              </div>
+              <button class="fix-btn" id="downloadCleanBtn" type="button">&darr; Download Clean CSV</button>
+            </div>`;
+        }
+
         elValResult.innerHTML = `
           <p style="margin:0 0 10px"><strong>${data.message}</strong></p>
           <div class="summary">
             <div class="metric"><strong>${data.summary.totalRows}</strong><span>Total rows</span></div>
             <div class="metric" style="border-color:#bde8cb"><strong style="color:var(--ok-ink)">${data.summary.validRows}</strong><span>Valid</span></div>
-            <div class="metric" style="border-color:#f5b8b8"><strong style="color:#a72020">${data.summary.invalidRows}</strong><span>Invalid</span></div>
+            <div class="metric" style="border-color:#f5b8b8"><strong style="color:#a72020">${data.summary.invalidRows}</strong><span>Issues</span></div>
+            ${data.summary.correctedRows ? `<div class="metric" style="border-color:#6ee7b7"><strong style="color:#065f46">${data.summary.correctedRows}</strong><span>Auto-fixed</span></div>` : ''}
           </div>
           <p style="margin:10px 0 6px;font-size:0.85rem">${data.nextStep || ''}</p>
-          ${errors ? `<h3 style="font-size:0.88rem;margin:10px 0 6px">Sample errors:</h3><ul class="errors">${errors}</ul>` : ''}`;
+          ${errors ? `<h3 style="font-size:0.88rem;margin:10px 0 6px">Sample errors:</h3><ul class="errors">${errors}</ul>` : ''}
+          ${fixBannerHtml}`;
+
+        const dlBtn = document.getElementById('downloadCleanBtn');
+        if (dlBtn) {
+          dlBtn.addEventListener('click', () => {
+            downloadCSV(lastCleanedRows, 'boomerang-cleaned.csv');
+            dlBtn.textContent = '\u2713 Downloaded!';
+            setTimeout(() => { dlBtn.textContent = '\u2193 Download Clean CSV'; }, 2000);
+          });
+        }
       }
 
       function updateUploadState() {
@@ -242,7 +369,7 @@
           }
           boomerangLoaded = true; updateUploadState();
           renderBoomerang(data);
-          setPill(elBoomStatus, 'success', `✓ Loaded: ${data.name}`);
+          setPill(elBoomStatus, 'success', `\u2713 Loaded: ${data.name}`);
           setPill(elUploadStatus, 'info', 'Choose a file and submit.');
         } catch (err) {
           setPill(elBoomStatus, 'error', `Network error: ${err.message}`);
@@ -272,7 +399,8 @@
           const data = await res.json();
           if (!res.ok) { setPill(elUploadStatus, 'error', data.error || 'Upload failed.'); return; }
           renderValidation(data);
-          setPill(elUploadStatus, data.summary.invalidRows === 0 ? 'success' : 'warning', data.message);
+          const pillType = data.summary.invalidRows === 0 ? 'success' : 'warning';
+          setPill(elUploadStatus, pillType, data.message);
         } catch (err) {
           setPill(elUploadStatus, 'error', `Network error: ${err.message}`);
         } finally {

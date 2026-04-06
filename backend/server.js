@@ -176,8 +176,68 @@ app.post('/api/boomerangs/:id/upload', upload.single('file'), async (req, res) =
       return res.status(400).json({ error: 'Unsupported file format. Use CSV or Excel.' });
     }
 
-    // VALIDATE against boomerang schema
-    const validation = validator.validateBatch(rows, boom);
+    // Pre-clean common messy formats before validation
+    // Strips currency symbols/commas from numbers, removes % signs, handles quarter strings
+    const numberFields = (boom.requiredFields || [])
+      .filter(f => f.type === 'number' || f.type === 'integer')
+      .map(f => f.name);
+    const dateFields = (boom.requiredFields || [])
+      .filter(f => f.type === 'date')
+      .map(f => f.name);
+
+    const preCleanedRows = rows.map(row => {
+      const cleaned = { ...row };
+      for (const field of numberFields) {
+        if (cleaned[field] !== undefined && cleaned[field] !== null) {
+          const raw = String(cleaned[field]).trim();
+          // Strip $, commas, % signs — "$2,500,000" → 2500000, "3.2%" → 3.2
+          const stripped = raw.replace(/[$,]/g, '').replace(/%$/, '');
+          if (!isNaN(Number(stripped)) && stripped !== '') {
+            cleaned[field] = stripped;
+          }
+        }
+      }
+      for (const field of dateFields) {
+        if (cleaned[field] !== undefined && cleaned[field] !== null) {
+          const raw = String(cleaned[field]).trim();
+          // Handle quarter formats: "2026-Q1", "Q1 2026", "Q1"
+          const quarterMap = {
+            'Q1': '2026-01-01', 'Q2': '2026-04-01', 'Q3': '2026-07-01', 'Q4': '2026-10-01'
+          };
+          const qMatch = raw.match(/Q([1-4])/i);
+          if (qMatch) {
+            const yearMatch = raw.match(/(\d{4})/);
+            const year = yearMatch ? yearMatch[1] : '2026';
+            const monthMap = { '1': '01', '2': '04', '3': '07', '4': '10' };
+            cleaned[field] = `${year}-${monthMap[qMatch[1]]}-01`;
+          }
+          // Handle "Jan-Mar 2026" style → first month start
+          const monthRangeMap = {
+            'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
+            'may': '05', 'jun': '06', 'jul': '07', 'aug': '08',
+            'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
+          };
+          const monthMatch = raw.match(/^([a-z]+)[- ]/i);
+          if (monthMatch && !qMatch) {
+            const mon = monthRangeMap[monthMatch[1].toLowerCase()];
+            const yearMatch2 = raw.match(/(\d{4})/);
+            if (mon && yearMatch2) {
+              cleaned[field] = `${yearMatch2[1]}-${mon}-01`;
+            }
+          }
+        }
+      }
+      return cleaned;
+    });
+
+    // VALIDATE against boomerang schema (using pre-cleaned rows)
+    const validation = validator.validateBatch(preCleanedRows, boom);
+
+    // Build cleaned rows from validatedRow transformations
+    const cleanedRows = validation.results.map((r) => r.validatedRow);
+    const correctedCount = validation.results.filter(
+      (r) => !r.isValid && r.validatedRow
+    ).length;
 
     // Store response with validation result
     const responseId = uuidv4();
@@ -194,23 +254,27 @@ app.post('/api/boomerangs/:id/upload', upload.single('file'), async (req, res) =
 
     responses.set(responseId, response);
 
-    // THIS IS THE KEY VALUE: Immediate feedback
+    // THIS IS THE KEY VALUE: Immediate feedback + auto-corrected data
     res.json({
       responseId,
-      message: validation.summary.invalid === 0 ? '✓ Perfect! All data is valid.' : `⚠️  ${validation.summary.invalid} rows have issues.`,
+      message: validation.summary.invalid === 0
+        ? '✓ Perfect! All data is valid.'
+        : `⚠️  ${validation.summary.invalid} rows have issues — ${correctedCount} auto-corrected.`,
       summary: {
         totalRows: validation.summary.total,
         validRows: validation.summary.valid,
         invalidRows: validation.summary.invalid,
+        correctedRows: correctedCount,
         fieldErrors: validation.summary.errors,
       },
+      cleanedRows,  // All rows with auto-corrections applied
       feedback: {
         sampleErrors: validation.summary.sampleErrors.slice(0, 3),
-        fullReport: validation.results, // All details for frontend
+        fullReport: validation.results,
       },
       nextStep: validation.summary.invalid === 0
         ? 'Data ready to sync! Owner can review and push to Tableau.'
-        : 'Please fix the errors above and resubmit.',
+        : `${correctedCount} rows were auto-corrected. Download the clean file or fix remaining issues and resubmit.`,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
