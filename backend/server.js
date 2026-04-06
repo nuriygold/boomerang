@@ -75,7 +75,15 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(publicDir, 'index.html'));
 });
 
-app.get('/health', (req, res) => {
+app.get("/demo", (req, res) => {
+  res.sendFile(path.join(publicDir, "demo.html"));
+});
+
+app.get("/app", (req, res) => {
+  res.sendFile(path.join(publicDir, "app.html"));
+});
+
+app.get("/health", (req, res) => {
   res.json({
     status: 'ok',
     service: 'data-boomerang',
