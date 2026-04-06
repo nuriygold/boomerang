@@ -30,9 +30,28 @@ const PORT = process.env.PORT || 3000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const publicDir = path.join(__dirname, 'public');
+const publicBaseUrl = (process.env.PUBLIC_BASE_URL || process.env.FRONTEND_URL || `http://localhost:${PORT}`)
+  .replace(/\/+$/, '');
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin(origin, callback) {
+    // Server-to-server and same-origin requests may not include Origin.
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS_BLOCKED: Origin ${origin} is not allowed`));
+  },
+}));
 app.use(express.json());
 app.use(express.static(publicDir));
 const upload = multer({ storage: multer.memoryStorage() });
@@ -52,22 +71,8 @@ boomerangs.set(demoBoom.id, demoBoom);
 // HEALTH CHECK
 // ============================================
 
-// ============================================
-// UI ROUTES
-// ============================================
-
 app.get('/', (req, res) => {
   res.sendFile(path.join(publicDir, 'index.html'));
-});
-
-// /demo — pre-loaded guided demo experience
-app.get('/demo', (req, res) => {
-  res.sendFile(path.join(publicDir, 'demo.html'));
-});
-
-// /app — production upload & validate tool
-app.get('/app', (req, res) => {
-  res.sendFile(path.join(publicDir, 'app.html'));
 });
 
 app.get('/health', (req, res) => {
@@ -75,6 +80,7 @@ app.get('/health', (req, res) => {
     status: 'ok',
     service: 'data-boomerang',
     tokenVaultConnected: !process.env.TOKEN_VAULT_URL?.includes('YOUR'),
+    publicBaseUrl,
     timestamp: new Date().toISOString(),
   });
 });
@@ -105,7 +111,7 @@ app.post('/api/boomerangs', async (req, res) => {
 
     res.json({
       boomerang,
-      shareUrl: `${process.env.FRONTEND_URL || `http://localhost:${PORT}`}/?boomerang=${boomerang.id}`,
+      shareUrl: `${publicBaseUrl}/?boomerang=${boomerang.id}`,
       message: `Boomerang created. Share the link with contributors.`,
     });
   } catch (error) {
@@ -190,7 +196,7 @@ app.post('/api/boomerangs/:id/upload', upload.single('file'), async (req, res) =
       for (const field of numberFields) {
         if (cleaned[field] !== undefined && cleaned[field] !== null) {
           const raw = String(cleaned[field]).trim();
-          // Strip $, commas, % signs — "$2,500,000" → 2500000, "3.2%" → 3.2
+          // Strip $, commas, % signs — handle "3.2%" → 3.2, "$2,500,000" → 2500000
           const stripped = raw.replace(/[$,]/g, '').replace(/%$/, '');
           if (!isNaN(Number(stripped)) && stripped !== '') {
             cleaned[field] = stripped;
@@ -200,18 +206,16 @@ app.post('/api/boomerangs/:id/upload', upload.single('file'), async (req, res) =
       for (const field of dateFields) {
         if (cleaned[field] !== undefined && cleaned[field] !== null) {
           const raw = String(cleaned[field]).trim();
-          // Handle quarter formats: "2026-Q1", "Q1 2026", "Q1"
+          // Handle common quarter formats: "2026-Q1", "Q1 2026", "Q1", "Jan-Mar 2026"
           const quarterMap = {
             'Q1': '2026-01-01', 'Q2': '2026-04-01', 'Q3': '2026-07-01', 'Q4': '2026-10-01'
           };
           const qMatch = raw.match(/Q([1-4])/i);
           if (qMatch) {
-            const yearMatch = raw.match(/(\d{4})/);
-            const year = yearMatch ? yearMatch[1] : '2026';
-            const monthMap = { '1': '01', '2': '04', '3': '07', '4': '10' };
-            cleaned[field] = `${year}-${monthMap[qMatch[1]]}-01`;
+            const qKey = `Q${qMatch[1]}`;
+            cleaned[field] = quarterMap[qKey] || cleaned[field];
           }
-          // Handle "Jan-Mar 2026" style → first month start
+          // Handle "Jan-Mar 2026" style → map to Q1 start
           const monthRangeMap = {
             'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
             'may': '05', 'jun': '06', 'jul': '07', 'aug': '08',
@@ -220,9 +224,9 @@ app.post('/api/boomerangs/:id/upload', upload.single('file'), async (req, res) =
           const monthMatch = raw.match(/^([a-z]+)[- ]/i);
           if (monthMatch && !qMatch) {
             const mon = monthRangeMap[monthMatch[1].toLowerCase()];
-            const yearMatch2 = raw.match(/(\d{4})/);
-            if (mon && yearMatch2) {
-              cleaned[field] = `${yearMatch2[1]}-${mon}-01`;
+            const yearMatch = raw.match(/(\d{4})/);
+            if (mon && yearMatch) {
+              cleaned[field] = `${yearMatch[1]}-${mon}-01`;
             }
           }
         }
@@ -230,14 +234,8 @@ app.post('/api/boomerangs/:id/upload', upload.single('file'), async (req, res) =
       return cleaned;
     });
 
-    // VALIDATE against boomerang schema (using pre-cleaned rows)
+    // VALIDATE against boomerang schema
     const validation = validator.validateBatch(preCleanedRows, boom);
-
-    // Build cleaned rows from validatedRow transformations
-    const cleanedRows = validation.results.map((r) => r.validatedRow);
-    const correctedCount = validation.results.filter(
-      (r) => !r.isValid && r.validatedRow
-    ).length;
 
     // Store response with validation result
     const responseId = uuidv4();
@@ -254,7 +252,13 @@ app.post('/api/boomerangs/:id/upload', upload.single('file'), async (req, res) =
 
     responses.set(responseId, response);
 
-    // THIS IS THE KEY VALUE: Immediate feedback + auto-corrected data
+    // Build cleaned rows from validatedRow transformations
+    const cleanedRows = validation.results.map((r) => r.validatedRow);
+    const correctedCount = validation.results.filter(
+      (r) => !r.isValid && r.validatedRow
+    ).length;
+
+    // THIS IS THE KEY VALUE: Immediate feedback
     res.json({
       responseId,
       message: validation.summary.invalid === 0
@@ -267,10 +271,10 @@ app.post('/api/boomerangs/:id/upload', upload.single('file'), async (req, res) =
         correctedRows: correctedCount,
         fieldErrors: validation.summary.errors,
       },
-      cleanedRows,  // All rows with auto-corrections applied
+      cleanedRows,  // All rows with auto-corrections applied (dates normalized, numbers parsed, etc.)
       feedback: {
         sampleErrors: validation.summary.sampleErrors.slice(0, 3),
-        fullReport: validation.results,
+        fullReport: validation.results, // All details for frontend
       },
       nextStep: validation.summary.invalid === 0
         ? 'Data ready to sync! Owner can review and push to Tableau.'

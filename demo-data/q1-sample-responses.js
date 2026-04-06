@@ -1,166 +1,62 @@
 /**
- * Sample Q1 Data Responses
- *
- * These represent the MESSY data that comes in from different teams
- * Notice how inconsistent the data is - this is the REAL problem Data Boomerang solves
+ * Sample responses for the Q1 Executive Briefing boomerang demo.
+ * Used by /api/demo/load-sample-data to pre-populate the dashboard.
  */
 
 export const SAMPLE_RESPONSES = [
   {
-    id: 'response-001',
-    boomerangId: 'demo-q1-2026',
-    submittedAt: '2026-03-15T09:30:00Z',
     team: 'Sales',
-    source: 'spreadsheet',
-    data: [
-      {
-        'Team Name': 'Sales',
-        'Q1 Primary Metric': '$2,500,000', // Note: dollar sign, comma
-        'Q1 Secondary Metric': '3.2', // churn %
-        'Metric Period': '2026-Q1', // Different date format!
-        'Confidence Score': '9',
-        'Comments': 'Includes new enterprise deals signed in March',
-      },
-      {
-        'Team Name': 'Sales',
-        'Q1 Primary Metric': '2500000', // No formatting
-        'Q1 Secondary Metric': '3.2',
-        'Metric Period': '03/31/2026', // US format
-        'Confidence Score': '9',
-        'Comments': '',
-      },
-    ],
-  },
-
-  {
-    id: 'response-002',
-    boomerangId: 'demo-q1-2026',
-    submittedAt: '2026-03-15T14:00:00Z',
-    team: 'Marketing',
     source: 'csv',
+    submittedAt: '2026-03-28T09:15:00Z',
     data: [
-      {
-        // Missing Team Name!
-        'Primary': '1850', // Wrong field name
-        'Secondary': '4.1',
-        'Date': 'March 2026', // Natural language date
-        'Confidence': '7',
-        'Notes': 'Conservative estimate, campaigns still running',
-      },
+      { department: 'Sales', quarter: 'Q1 2026', revenue: '$2,500,000', headcount: 42, region: 'Southeast' },
+      { department: 'Sales', quarter: 'Q1 2026', revenue: '$1,875,000', headcount: 38, region: 'Northeast' },
+      { department: 'Sales', quarter: 'Q1 2026', revenue: '$3,100,000', headcount: 51, region: 'West' },
     ],
   },
-
   {
-    id: 'response-003',
-    boomerangId: 'demo-q1-2026',
-    submittedAt: '2026-03-16T08:45:00Z',
+    team: 'Marketing',
+    source: 'xlsx',
+    submittedAt: '2026-03-29T11:30:00Z',
+    data: [
+      { department: 'Marketing', quarter: '2026-Q1', revenue: '$420,000', headcount: 18, region: 'National' },
+      { department: 'Marketing', quarter: '2026-Q1', revenue: '$385,000', headcount: '17', region: 'National' },
+    ],
+  },
+  {
     team: 'Engineering',
-    source: 'email',
+    source: 'csv',
+    submittedAt: '2026-03-29T14:00:00Z',
     data: [
-      {
-        'Team Name': 'Engineering',
-        'Q1 Primary Metric': '847', // Deployments
-        'Q1 Secondary Metric': '12', // Incidents
-        'Metric Period': '2026-03-15', // Correct format!
-        'Confidence Score': 10, // Integer not string
-        'Comments': 'All systems nominal',
-      },
+      { department: 'Engineering', quarter: 'Jan-Mar 2026', revenue: null, headcount: 94, region: 'Remote' },
+      { department: 'Engineering', quarter: 'Jan-Mar 2026', revenue: null, headcount: 87, region: 'Remote' },
+      { department: 'Engineering', quarter: 'Jan-Mar 2026', revenue: null, headcount: 102, region: 'Atlanta' },
     ],
   },
-
   {
-    id: 'response-004',
-    boomerangId: 'demo-q1-2026',
-    submittedAt: '2026-03-16T11:20:00Z',
-    team: 'Operations',
-    source: 'screenshot_ocr', // Image that was OCR'd
-    data: [
-      {
-        'Team Name': 'Ops',
-        // Missing Q1 Primary Metric!
-        'Q1 Secondary Metric': 'N/A', // Can't parse as number
-        'Metric Period': '2026-03-31',
-        'Confidence Score': '5',
-        'Comments': 'System outage Jan 15-17 affected numbers',
-      },
-    ],
-  },
-
-  {
-    id: 'response-005',
-    boomerangId: 'demo-q1-2026',
-    submittedAt: '2026-03-17T10:00:00Z',
     team: 'Finance',
-    source: 'google_sheet',
+    source: 'xlsx',
+    submittedAt: '2026-03-30T08:45:00Z',
     data: [
-      {
-        'Team Name': 'Finance / Accounting',
-        'Q1 Primary Metric': '45.2M', // Mixed format
-        'Q1 Secondary Metric': '1.8',
-        'Metric Period': '2026-Q1-31', // Invalid format
-        'Confidence Score': '8',
-        'Comments':
-          'Preliminary numbers, final audit underway. Includes 2M from one-time event',
-      },
+      { department: 'Finance', quarter: 'Q1', revenue: '$950,000', headcount: 12, region: 'HQ' },
+      { department: 'Finance', quarter: 'Q1', revenue: '$1,020,000', headcount: 14, region: 'HQ' },
+    ],
+  },
+  {
+    team: 'Operations',
+    source: 'csv',
+    submittedAt: '2026-03-31T16:20:00Z',
+    data: [
+      { department: 'Operations', quarter: 'Q1 2026', revenue: '780000', headcount: 29, region: 'Southeast' },
+      { department: 'Operations', quarter: 'Q1 2026', revenue: '3.2%', headcount: 31, region: 'Southeast' },
     ],
   },
 ];
 
-/**
- * What the API returns to show the user
- * Real-time validation feedback for each submission
- */
 export function getMockValidationFeedback() {
   return {
-    totalSubmissions: 5,
-    validSubmissions: 2,
-    invalidSubmissions: 3,
-    commonIssues: {
-      'Q1 Primary Metric': {
-        count: 3,
-        issues: [
-          'Missing in Operations submission',
-          'Format inconsistency: "$2.5M" vs "2500000"',
-          'Contains non-numeric characters in Finance submission',
-        ],
-      },
-      'Metric Period': {
-        count: 2,
-        issues: [
-          'Invalid format in Finance: "2026-Q1-31" (should be YYYY-MM-DD)',
-          'Natural language in Marketing: "March 2026"',
-        ],
-      },
-      'Q1 Secondary Metric': {
-        count: 1,
-        issues: ['Operations submitted "N/A" - must be numeric'],
-      },
-      'Team Name': {
-        count: 1,
-        issues: ['Marketing submission missing Team Name entirely'],
-      },
-    },
+    totalSubmissions: SAMPLE_RESPONSES.length,
+    teams: SAMPLE_RESPONSES.map((r) => r.team),
+    note: 'Sample data includes intentional formatting issues (dollar signs, quarter strings, percentage values) to demonstrate auto-correction.',
   };
 }
-
-/**
- * Expected cleaned output after validation
- */
-export const EXPECTED_CLEANED_DATA = [
-  {
-    'Team Name': 'Sales',
-    'Q1 Primary Metric': 2500000,
-    'Q1 Secondary Metric': 3.2,
-    'Metric Period': '2026-03-31',
-    'Confidence Score': 9,
-    'Comments': 'Includes new enterprise deals signed in March',
-  },
-  {
-    'Team Name': 'Engineering',
-    'Q1 Primary Metric': 847,
-    'Q1 Secondary Metric': 12,
-    'Metric Period': '2026-03-15',
-    'Confidence Score': 10,
-    'Comments': 'All systems nominal',
-  },
-];
